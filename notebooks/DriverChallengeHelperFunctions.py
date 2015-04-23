@@ -13,7 +13,7 @@ def get_speed(trip):
         speed.append( distance(trip[i], trip[i+1])*3.6 )
     return speed
 
-∂`def smooth_speed(speed, filter=9):
+def smooth_speed(speed, filter=9):
     """
     Smoothes signal using median filter and the given filter size.
     """
