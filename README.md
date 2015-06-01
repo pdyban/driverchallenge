@@ -6,6 +6,7 @@ Driver Telematics Analysis is a Kaggle challenge. For more details, see the [cha
 - [A Git commands cheat sheet](http://www.git-tower.com/blog/git-cheat-sheet/)
 - [Learn Git in 15 minutes with an interactive shell](https://try.github.io/levels/1/challenges/1)
 - [Advanced Git crash course in another 15 minutes](http://gitreal.codeschool.com/enroll)
+- [List of all algorithms in scikit-learn](http://scikit-learn.org/dev/user_guide.html)
 
 # Scientific papers
 - [Elliptic Envelope](http://www.geo.upm.es/postgrado/CarlosLopez/papers/FastAlgMCD99.pdf)
