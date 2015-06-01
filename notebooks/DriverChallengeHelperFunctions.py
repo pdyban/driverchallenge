@@ -17,8 +17,12 @@ def smooth_speed(speed, filter=9):
     """
     Smoothes signal using median filter and the given filter size.
     """
-    from scipy.signal import medfilt
-    return medfilt(speed, filter)
+    #from scipy.signal import medfilt
+    #return medfilt(speed, filter)
+    #from scipy import signal
+    from scipy.signal import savgol_filter
+    
+    return savgol_filter(speed, 10, 3)
 
 def get_acceleration(speed):
     """
@@ -30,7 +34,6 @@ def get_acceleration(speed):
     for i in range(len(speed)-1):
         acc.append(speed[i+1] - speed[i])
     return acc
-
 
 # In[ ]:
 
