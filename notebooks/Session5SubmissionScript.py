@@ -5,9 +5,19 @@ import numpy as np
 import DriverDataIO as io
 import DriverChallengeHelperFunctions as helpers
 from Submission import create_submission
-import gc
+from joblib import Parallel, delayed  # for parallel for loop
+from datetime import datetime  # for directory names with current time
+import os
+from collections import OrderedDict
+import subprocess
 
-pathToDriverData = '../../driverchallenge_data/drivers'
+
+PARALLEL = True
+
+
+#pathToDriverData = '../../driverchallenge_data/drivers'
+pathToDriverData = '../drivers'
+
 
 def interpolate_speed(_speed):
     """
@@ -115,8 +125,12 @@ def compute_acceleration_feature(_intervals, feat=np.mean):
         value = (interval[-1][1] - interval[0][1])/(interval[-1][0] - interval[0][0])
         prefeature.append(abs(value))
         #print value
-        
-    return feat(prefeature)
+
+    if len(prefeature):
+        return feat(prefeature)
+
+    else:
+        return 0.0  # if there isn't a single valid interval
 
     
 def compute_all_acc_features(driver):
@@ -131,7 +145,15 @@ def compute_all_acc_features(driver):
         for (interval_begin, interval_end, acceleration, feat) in [(10, 30, True, np.median), (10, 30, True, np.std)]:
             interval = bin_speed_interval(interpolated_speed, interval_begin, interval_end, acceleration)
             contiguous_intervals = find_intervals(interval, acceleration)
-            feature_val.append( compute_acceleration_feature(contiguous_intervals, feat=feat) )
+            if len(contiguous_intervals) == 0:
+                if len(feature_val) > 0:
+                    feature_val.append(np.mean(feature_val))
+
+                else:
+                    feature_val.append(0.0)
+
+            else:
+                feature_val.append( compute_acceleration_feature(contiguous_intervals, feat=feat) )
 
         if all(not math.isnan(val) for val in feature_val):
             feature_array.append([i] + feature_val)
@@ -141,14 +163,12 @@ def compute_all_acc_features(driver):
     return features
     
 
-def fit_elliptic_envelope(_features, outliers_fraction = 0.02, plot=False):
+def fit_elliptic_envelope(_features, outliers_fraction=0.02, plot=False):
     from sklearn import covariance
 
     clf = covariance.EllipticEnvelope(contamination=.1)
 
-    #print features[:,2], features[:,3]
-    features_only = np.c_[_features[:,2], _features[:,3]]
-    #print features_only
+    features_only = np.c_[_features[:, 2], _features[:, 3]]
 
     clf.fit(features_only)  
     y_pred = clf.decision_function(features_only).ravel()
@@ -157,7 +177,6 @@ def fit_elliptic_envelope(_features, outliers_fraction = 0.02, plot=False):
     from scipy import stats
     threshold = stats.scoreatpercentile(y_pred, 100 * outliers_fraction)
     y_pred = y_pred > threshold
-    #print y_pred
 
     # plot results
     if plot:
@@ -171,43 +190,85 @@ def list_all_drivers():
     import os
 
     drivers = []
-    # max_num_drivers = 10
-    cdrivernum = 1;
+
     for f in os.listdir(pathToDriverData):
         try:
             int(f)
-            drivers.append(f)
+            drivers.append(int(f))
         except ValueError:
             pass
 
-        cdrivernum += 1
-        # if cdrivernum > max_num_drivers:
-        #    break
-    return drivers
+    return sorted(drivers)
+
 
 def list_all_drives():
-    drives = {}
+    drives = OrderedDict()
+
+    #print len(list_all_drivers())
+    #print all(len(os.listdir(os.path.join(pathToDriverData, driver))) == 200 for driver in list_all_drivers())
+
     for driver in list_all_drivers():
         drives[driver] = 200
+        #trips = len(os.listdir(os.path.join(pathToDriverData, driver)))
+        #if trips != 200:
+        #    print driver, trips, os.listdir(os.path.join(pathToDriverData, driver))
         
     return drives
 
+
+def _create_submission(_driver, _path):
+    """
+    Creates a single submission file.
+
+    :param _driver: driver for which a csv submission file will be created
+    :param _path: subdirectory where this submission part will be stored
+    """
+    res = []
+    features = compute_all_acc_features(int(_driver))
+    D = np.ones(len(features))*int(_driver)
+    features = np.c_[ D, features]
+
+    res.extend(fit_elliptic_envelope(features))
+    submission_path = os.path.join(_path, str(_driver) + '.csv')
+    create_submission(submission_path, res)
+
+
 # @profile
 def create_complete_submission():
-    all_drives = list_all_drives()
-    drive_index = 0.0
-    for driver, num_drives in all_drives.iteritems():
-        if drive_index % 100 == 0:
-            print drive_index / len(all_drives)
-        res = []
-        features = compute_all_acc_features(int(driver))
-        D = np.ones(len(features))*int(driver)
-        features = np.c_[ D, features]
+    subdir = '../submissions/' + datetime.now().strftime('%I%M%S')
+    # create tmp directory for dumping all trips into
+    os.makedirs(subdir)
 
-        res.extend( fit_elliptic_envelope(features) )
-        submission_path = '../submissions/' + driver + '.csv'
-        create_submission(submission_path, res)
-        drive_index += 1
+    if PARALLEL:
+        Parallel(n_jobs=8)(delayed(_create_submission)(driver, subdir) for driver in list_all_drives())
+
+    else:
+        #for driver in list_all_drivers():
+        #    _create_submission(driver, subdir)
+        #    raise Exception('Stop me')
+        [_create_submission(driver, subdir) for driver in list_all_drives()]
+
+    subprocess.call("cat *.csv >submission.csv", cwd=subdir)
+
+    # when this script is finished, call cat *.csv >submission.csv, to merge all files into 1
+    return subdir
+
+
+def test_submission(_subdir):
+    import glob
+
+    for f in glob.glob('../submissions/%s/*.csv' % _subdir):
+        with open(f) as fr:
+            if len(fr.readlines()) != 200:
+                print f, len(fr.readlines())
+
 
 if __name__ == '__main__':
-    create_complete_submission()
+    #subdir = create_complete_submission()
+
+    subdir = '../submissions/091533'
+    #_create_submission('1250', subdir)
+    test_submission(subdir)
+
+    with open(subdir + '/submission.csv') as f:
+        print len(f.readlines())

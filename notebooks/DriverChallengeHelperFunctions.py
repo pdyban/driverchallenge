@@ -17,12 +17,14 @@ def smooth_speed(speed, filter=9):
     """
     Smoothes signal using median filter and the given filter size.
     """
-    #from scipy.signal import medfilt
-    #return medfilt(speed, filter)
+    import scipy
+    from scipy.signal import medfilt
+    return medfilt(speed, filter)
     #from scipy import signal
-    from scipy.signal import savgol_filter
+    #import scipy
+    #from signal import savgol_filter
     
-    return savgol_filter(speed, 10, 3)
+    #return savgol_filter(speed, 10, 3)
 
 def get_acceleration(speed):
     """

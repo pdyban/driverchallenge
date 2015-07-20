@@ -4,42 +4,42 @@
 # # Part 1. Feature extraction
 # Today we want to finish extracting the first feature: mean acceleration in a number of different speed regions. After we derive the feature, we will try different classification algorithms and select the most effective one.
 
-# In[84]:
+# In[1]:
 
 import DriverDataIO as io
 
 
-# In[85]:
+# In[2]:
 
-trip = io.get_trip(1,1,'../drivers/')
+#trip = io.get_trip(1,1,'../drivers/')
 
 
-# In[86]:
+# In[3]:
 
 get_ipython().magic(u'matplotlib inline')
 
 
-# In[87]:
+# In[4]:
 
 import DriverChallengeHelperFunctions as helpers
 
 
-# In[88]:
+# In[5]:
 
-speed = helpers.get_speed(trip)
+#speed = helpers.get_speed(trip)
 
 
-# In[89]:
+# In[6]:
 
 import DriverChallengeVisualization as vis
 
 
-# In[90]:
+# In[7]:
 
-vis.plot_speed(speed)
+#vis.plot_speed(speed)
 
 
-# In[91]:
+# In[8]:
 
 def plot(items):
     """
@@ -53,7 +53,7 @@ def plot(items):
     plt.show()
 
 
-# In[92]:
+# In[9]:
 
 def interpolate_speed(_speed):
     """
@@ -78,11 +78,11 @@ def interpolate_speed(_speed):
             
     return interpolatedSpeed
 
-interpolated_speed = interpolate_speed(speed)
-plot(interpolated_speed)
+#interpolated_speed = interpolate_speed(speed)
+#plot(interpolated_speed)
 
 
-# In[118]:
+# In[10]:
 
 def get_acceleration(speed):
     """
@@ -99,7 +99,7 @@ def get_acceleration(speed):
     return acc
 
 
-# In[122]:
+# In[11]:
 
 def bin_speed_interval(_speed, _from, _to, _acceleration=True):    
     """
@@ -122,14 +122,14 @@ def bin_speed_interval(_speed, _from, _to, _acceleration=True):
     return intervals
 
 
-# In[127]:
+# In[12]:
 
-tentothirty = bin_speed_interval(interpolated_speed, 10, 30, False)  # compute deceleration feature
+#tentothirty = bin_speed_interval(interpolated_speed, 10, 30, False)  # compute deceleration feature
 
 
-# In[128]:
+# In[13]:
 
-plot(tentothirty)
+#plot(tentothirty)
 
 
 # The plot above displays the speed distribution in the selected speed interval (10 to 30 kmph).
@@ -143,7 +143,7 @@ plot(tentothirty)
 #       * 51 and 70 kmph;
 #   - deceleration, in the same intervals
 
-# In[165]:
+# In[14]:
 
 def find_intervals(_interval, _acceleration=True):
     """
@@ -173,7 +173,7 @@ def find_intervals(_interval, _acceleration=True):
     return intervals
 
 
-# In[182]:
+# In[15]:
 
 import numpy as np
 
@@ -199,7 +199,7 @@ def compute_acceleration_feature(_intervals, feat=np.mean):
     return feat(prefeature)
 
 
-# In[295]:
+# In[16]:
 
 import math
 
@@ -227,23 +227,23 @@ def compute_all_acc_features(driver):
     return features
     
 
-driver = 10
+#driver = 10
 
-drivers = [10,11,12,13]
-plt.figure(figsize=(15,8))
+#drivers = [10,11,12,13]
+#plt.figure(figsize=(15,8))
 
-for driver_index, driver in enumerate(drivers):
-    features = compute_all_acc_features(driver)
-    
-    D = np.ones(len(features))*driver
-    features = np.c_[ D, features]
-    subplot = plt.subplot(1, len(drivers), driver_index)
-    subplot.set_title('Driver %d' % driver)
-    subplot.plot([f[1:] for f in features], '+')
-    #subplot.set_ylim(0, 10.0)
-    
-    #print features
-    break
+#for driver_index, driver in enumerate(drivers):
+#    features = compute_all_acc_features(driver)
+#    
+#    D = np.ones(len(features))*driver
+#    features = np.c_[ D, features]
+#    subplot = plt.subplot(1, len(drivers), driver_index)
+#    subplot.set_title('Driver %d' % driver)
+#    subplot.plot([f[1:] for f in features], '+')
+#    #subplot.set_ylim(0, 10.0)
+#    
+#    #print features
+#    break
     
     
 #import matplotlib.pyplot as plt
@@ -268,14 +268,14 @@ for driver_index, driver in enumerate(drivers):
 # ## Trying different algorithms
 # Next we want to filter out the outliers with scikit-learn.
 
-# In[152]:
+# In[17]:
 
 import sklearn
 
 
 # First, lets try K-means algorithm.
 
-# In[266]:
+# In[18]:
 
 #from sklearn.cluster import KMeans 
 #filtered_features = [f for f in feature1030 if not math.isnan(f[1])]
@@ -291,7 +291,7 @@ import sklearn
 
 # Now, let's try something that works: [Elliptic Envelope](http://scikit-learn.org/stable/auto_examples/covariance/plot_outlier_detection.html)
 
-# In[306]:
+# In[19]:
 
 def fit_elliptic_envelope(_features, outliers_fraction = 0.02, plot=False):
     from sklearn import covariance
@@ -317,8 +317,8 @@ def fit_elliptic_envelope(_features, outliers_fraction = 0.02, plot=False):
     
     return np.c_[_features[:,0], _features[:,1], y_pred]
 
-res = fit_elliptic_envelope(features)
-print res
+#res = fit_elliptic_envelope(features)
+#print res
 
 
 # Idea: try to fit the model for each feature separately, then compute the sum of probabilities of each point being an outlier.
@@ -326,7 +326,7 @@ print res
 # # First submission
 # Next we shall create the first submission file.
 
-# In[296]:
+# In[20]:
 
 def list_all_drivers():
     import os
@@ -340,7 +340,7 @@ def list_all_drivers():
         except ValueError:
             pass
         
-    return drivers
+    return sorted(drivers)
 
 def list_all_drives():
     drives = {}
@@ -358,22 +358,17 @@ def list_all_drives():
     return drives
 
 
-# In[305]:
+# In[21]:
 
-res = []
+if __name__ == '__main__':
 
-for driver, num_drives in list_all_drives().iteritems():
-    print driver, num_drives
-    features = compute_all_acc_features(int(driver))    
-    D = np.ones(len(features))*int(driver)
-    features = np.c_[ D, features]
-    
-    res.extend( fit_elliptic_envelope(features) )
+    res = []
 
+    for driver, num_drives in list_all_drives().iteritems():
+        print driver, num_drives
+        features = compute_all_acc_features(int(driver))    
+        D = np.ones(len(features))*int(driver)
+        features = np.c_[ D, features]
 
-# In[293]:
-
-from Submission import create_submission
-
-create_submission('../submissions/1.csv', res)
+        res.extend( fit_elliptic_envelope(features) )
 

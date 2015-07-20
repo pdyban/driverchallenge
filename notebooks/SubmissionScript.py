@@ -12,12 +12,11 @@ from collections import OrderedDict
 import subprocess
 
 
-PARALLEL = True
-
+PARALLEL = False
 
 #pathToDriverData = '../../driverchallenge_data/drivers'
-pathToDriverData = '../drivers'
-
+pathToDriverData = '../drivers_npy'  # compute trip using ConvertDriverDataToNpy.py
+pathToSpeedData = '../speed_npy'  # compute speed using session8_computeSpeedCurvatureAsNumPy.ipynb
 
 def interpolate_speed(_speed):
     """
@@ -133,16 +132,18 @@ def compute_acceleration_feature(_intervals, feat=np.mean):
         return 0.0  # if there isn't a single valid interval
 
     
-def compute_all_acc_features(driver):
+def compute_all_acc_features(driver, features):
     feature_array = []  # container for all acceleration features
     
     for i in range(1, 201):  # all trips
-        _trip = io.get_trip(driver, i, pathToDriverData)
-        speed = helpers.get_speed(_trip)
+        #_trip = io.get_trip_npy(driver, i, pathToDriverData)
+        #speed = helpers.get_speed(_trip)
+        speed = np.load(os.path.join(pathToSpeedData, str(driver), '%s.npy' % i))
+        speed = helpers.smooth_speed(speed)
         interpolated_speed = interpolate_speed(speed)
         feature_val = []
         #for (interval_begin, interval_end, acceleration) in [(10, 30, True), (10, 30, False)]:
-        for (interval_begin, interval_end, acceleration, feat) in [(10, 30, True, np.median), (10, 30, True, np.std)]:
+        for (interval_begin, interval_end, acceleration, feat) in features:
             interval = bin_speed_interval(interpolated_speed, interval_begin, interval_end, acceleration)
             contiguous_intervals = find_intervals(interval, acceleration)
             if len(contiguous_intervals) == 0:
@@ -185,6 +186,27 @@ def fit_elliptic_envelope(_features, outliers_fraction=0.02, plot=False):
     return np.c_[_features[:,0], _features[:,1], y_pred]
 
 
+def major_index(l):
+    from collections import defaultdict
+    d = defaultdict(int)
+    for item in l:
+        d[item]+=1
+        
+    return max(d.iteritems(), key=lambda x: x[1])[0]
+
+
+def clusterize(_features):
+    import sklearn
+    from sklearn.cluster import DBSCAN
+    
+    est = DBSCAN()
+    
+    Y = est.fit_predict(_features[:,2:])
+    
+    y_pred = [(i==major_index(Y)) for i in Y]
+    
+    return np.c_[_features[:,0], _features[:,1], y_pred]
+
 
 def list_all_drivers():
     import os
@@ -216,7 +238,7 @@ def list_all_drives():
     return drives
 
 
-def _create_submission(_driver, _path):
+def _create_submission(_driver, _path, _features):
     """
     Creates a single submission file.
 
@@ -224,29 +246,46 @@ def _create_submission(_driver, _path):
     :param _path: subdirectory where this submission part will be stored
     """
     res = []
-    features = compute_all_acc_features(int(_driver))
-    D = np.ones(len(features))*int(_driver)
-    features = np.c_[ D, features]
-
-    res.extend(fit_elliptic_envelope(features))
+    features = compute_all_acc_features(int(_driver), _features)
+    
+    D = np.ones(len(features)) * int(_driver)
+    X = np.c_[D, features]
+    
+    res = clusterize(X)
+    
+    x, y, z, c = [i[2] for i in X], [i[3] for i in X], [i[4] for i in X], [pred[2] for pred in res]
+        
     submission_path = os.path.join(_path, str(_driver) + '.csv')
+    
+    # prepare plot
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import axes3d, Axes3D
+    
+    #fig, ax = plt.subplots()
+    p = plt.subplot(1, 1, 1, projection='3d')
+    p.scatter(x, y, z, c=c, marker='+')
+    
+    # save plot to file
+    p.figure.savefig(submission_path.replace('.csv', '.png'))
+
+    # save feature prediction to file
     create_submission(submission_path, res)
 
 
 # @profile
-def create_complete_submission():
-    subdir = '../submissions/' + datetime.now().strftime('%I%M%S')
+def create_complete_submission(features):
+    subdir = '../submissions/' + datetime.now().strftime('%Y%m%d__%H%M%S')
     # create tmp directory for dumping all trips into
     os.makedirs(subdir)
 
     if PARALLEL:
-        Parallel(n_jobs=8)(delayed(_create_submission)(driver, subdir) for driver in list_all_drives())
+        Parallel(n_jobs=8)(delayed(_create_submission)(driver, subdir, features) for driver in list_all_drivers())
 
     else:
         #for driver in list_all_drivers():
-        #    _create_submission(driver, subdir)
+        #    _create_submission(driver, subdir, features)
         #    raise Exception('Stop me')
-        [_create_submission(driver, subdir) for driver in list_all_drives()]
+        [_create_submission(driver, subdir, features) for driver in list_all_drivers()]
 
     subprocess.call("cat *.csv >submission.csv", cwd=subdir)
 
