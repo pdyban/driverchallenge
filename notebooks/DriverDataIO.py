@@ -21,3 +21,18 @@ def get_trip(driver, index, pathToDriverData):
 def get_trip_npy(driver, index, pathToDriverData):
     trip = numpy.load(pathToDriverData + '/%d/%d.npy' % (driver,index))
     return trip
+
+
+def list_all_drivers(pathToDriverData):
+    import os
+
+    drivers = []
+
+    for f in os.listdir(pathToDriverData):
+        try:
+            int(f)
+            drivers.append(int(f))
+        except ValueError:
+            pass
+
+    return sorted(drivers)
