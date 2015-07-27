@@ -18,6 +18,9 @@ class AccelerationFeature(Speed, Feature):
         self.acc = _acceleration
         self.feat = _feature  # np.median, np.std
 
+    def __repr__(self):
+        return "%s %s feature for speed interval (%d, %d)" % (self.feat.__name__, ['decceleration', 'acceleration'][self.acc], self.from_, self.to_)
+
     def compute(self, trip):
 
         #feature_array = []  # container for all acceleration features
@@ -32,11 +35,7 @@ class AccelerationFeature(Speed, Feature):
         feature_val = 0.0
 
         if len(contiguous_intervals) == 0:
-            if len(feature_val) > 0:
-                feature_val = np.mean(feature_val)
-
-            else:
-                feature_val = 0.0
+            feature_val = 0.0  # todo: think about replacement values for unavailable data
 
         else:
             feature_val = self.compute_acceleration_feature(contiguous_intervals, feat=self.feat)

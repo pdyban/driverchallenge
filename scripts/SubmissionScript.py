@@ -23,7 +23,6 @@ import utils
 # submission result
 #features = []
 
-features = [AccelerationFeature(10, 31, True, np.median)]
 
 
 utils.create_complete_submission(features, parallel=True)
