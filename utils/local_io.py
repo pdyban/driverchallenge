@@ -61,8 +61,18 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d, Axes3D
 
 
-def save_3d_plot_to_file(x, y, z, c, submission_path):
+def save_3d_plot_to_file(x, y, z, c, path):
     p = plt.subplot(1, 1, 1, projection='3d')
     p.scatter(x, y, z, c=c, marker='+')
     # save plot to file
-    p.figure.savefig(submission_path)
+    p.figure.savefig(path)
+
+
+def save_1d_plot_to_file(x, c, path):
+    #p = plt.subplot(1, 1, 1, projection='3d')
+    #plt.hlines(1, min(x), max(x))  # Draw a horizontal line
+    #plt.xlim(0,21)
+    #plt.ylim(-0.5, 1.5)
+    p = plt.subplot(1, 1, 1)
+    p.scatter(x, c, marker='o')
+    p.figure.savefig(path)
