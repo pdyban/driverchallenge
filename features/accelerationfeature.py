@@ -23,16 +23,12 @@ class AccelerationFeature(Speed, Feature):
 
     def compute(self, trip):
 
-        #feature_array = []  # container for all acceleration features
-
         speed = self.get_speed(trip)
         speed = self.smooth_speed(speed)
         interpolated_speed = self.interpolate_speed(speed)
 
         interval = self.bin_speed_interval(interpolated_speed, self.from_, self.to_, self.acc)  # last parameter is acceleration indicator, True for acceleration
         contiguous_intervals = self.find_intervals(interval, self.acc)  # last param is acceleration parameter
-
-        feature_val = 0.0
 
         if len(contiguous_intervals) == 0:
             feature_val = 0.0  # todo: think about replacement values for unavailable data
