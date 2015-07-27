@@ -15,6 +15,7 @@ from local_io import write_submission_to_file
 #pathToDriverData = '../../driverchallenge_data/drivers'
 pathToDriverData = 'drivers_npy'  # compute trip using ConvertDriverDataToNpy.py
 #pathToSpeedData = '../speed_npy'  # compute speed using session8_computeSpeedCurvatureAsNumPy.ipynb
+pathToSubmissions = 'submissions'
 
 
 from local_io import get_trip_npy
@@ -68,15 +69,15 @@ def compute_all_features(driver, features):
     return np.array(res)
 
 
-def create_complete_submission(_create_driver_submission, features, parallel):
+def create_complete_submission(estimator, features, parallel):
     """
     Creates a submission file for all drivers and their trips.
 
-    :param _create_driver_submission: function that computes the features for each driver
+    :param estimator: function that computes the features for each driver
     :param parallel: Should generation script run parallel.
     :return:
     """
-    subdir = '../submissions/' + datetime.now().strftime('%Y%m%d__%H%M%S')
+    subdir = os.path.join(pathToSubmissions, datetime.now().strftime('%Y%m%d__%H%M%S'))
     # create tmp directory for dumping all trips into
     os.makedirs(subdir)
 
@@ -84,11 +85,15 @@ def create_complete_submission(_create_driver_submission, features, parallel):
         """
         Wraps feature generation and writes results to file.
         """
-        res = _create_driver_submission(driver, _subdir, _features)
+        print 'computing model for', _driver, _subdir, _features, '...'
+
+        X = compute_all_features(int(_driver), _features)
+
+        submission_path = os.path.join(_subdir, str(_driver) + '.csv')
+        submission = estimator(X, submission_path)
 
         # save feature prediction to file
-        submission_path = os.path.join(_subdir, str(_driver) + '.csv')
-        write_submission_to_file(submission_path, res)
+        write_submission_to_file(submission_path, submission)
 
     if parallel:
         drivers = list_all_drivers()
