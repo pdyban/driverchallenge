@@ -49,6 +49,13 @@ def clusterize_driver(X, _path):
     return res  # TODO: are all trips included?
 
 
+def compute_percentile_10(x):
+    """
+    Local function that wraps numpy's percentile is necessary, since joblib needs to pickle functions.
+    """
+    return np.percentile(x, 10)
+
+
 if __name__ == '__main__':
     # submission result: 0.52
     #features = [(10, 30, True, np.median), (31, 50, True, np.median), (51, 80, True, np.median), (10, 30, False, np.median)]
@@ -63,11 +70,13 @@ if __name__ == '__main__':
     #features += [(10, 30, True, np.std), (31, 50, True, np.std), (51, 80, True, np.std), (10, 30, False, np.std)]
     #pdyban.create_complete_submission(features, parallel=True)
 
-    features = [AccelerationFeature(10, 31, True, np.median),
-                AccelerationFeature(31, 50, True, np.median),
-                AccelerationFeature(51, 80, True, np.median),
-                AccelerationFeature(10, 31, False, np.median), ]
+    # features = [AccelerationFeature(10, 31, True, np.median),
+    #             AccelerationFeature(31, 50, True, np.median),
+    #             AccelerationFeature(51, 80, True, np.median),
+    #             AccelerationFeature(10, 31, False, np.median), ]
 
-    features = [AngleFeature(0), ]
+    #features = [AngleFeature(0, np.mean), ]
+
+    features = [AngleFeature(0, compute_percentile_10), ]
 
     create_complete_submission(clusterize_driver, features, True)
