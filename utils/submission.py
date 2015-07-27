@@ -64,7 +64,10 @@ def compute_all_features(driver, features):
         if all(not math.isnan(val) for val in feature_array):
             res += [[driver, trip] + feature_array]
 
-            # TODO HERE!!!!
+        else:
+            res += [[driver, trip] + [None]*len(feature_array)]
+            raise ValueError('Hello world')
+            # if data is not valid, then return None, handle this case separately during estimation
 
     return np.array(res)
 
@@ -99,8 +102,9 @@ def create_complete_submission(estimator, features, parallel):
     os.makedirs(subdir)
 
     if parallel:
-        drivers = list_all_drivers()
+        drivers = list_all_drivers()[:60]
         Parallel(n_jobs=8)(delayed(write_to_file)(estimator, driver, subdir, features) for driver in drivers)
+        test_submission(subdir)
 
     else:
         #for driver in list_all_drivers():
@@ -114,13 +118,13 @@ def create_complete_submission(estimator, features, parallel):
     return subdir
 
 
-# def test_submission(_subdir):
-#     import glob
-#
-#     for f in glob.glob('../submissions/%s/*.csv' % _subdir):
-#         with open(f) as fr:
-#             if len(fr.readlines()) != 200:
-#                 print f, len(fr.readlines())
+def test_submission(_subdir):
+    import glob
+
+    for f in glob.glob('%s/*.csv' % _subdir):
+        with open(f) as fr:
+            if len(fr.readlines()) != 200:
+                print f, len(fr.readlines())
 
 
 # if __name__ == '__main__':
@@ -132,7 +136,7 @@ def create_complete_submission(estimator, features, parallel):
 #
 #     with open(subdir + '/submission.csv') as f:
 #         print len(f.readlines())
-#
+
 #
 # if __name__ == '__main__':
 #     features = [
