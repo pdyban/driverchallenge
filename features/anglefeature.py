@@ -3,25 +3,31 @@ __author__ = 'scigor'
 from feature import Feature
 import numpy as np
 import math
+import rdp
 
 
 class AngleFeature(Feature):
     """
     Computes angle feature.
     """
-    def __init__(self):
+    def __init__(self, _rdpFactor):
         super(Feature, self).__init__()
 
+        self.rdpFactor_ = _rdpFactor
+
     def compute(self, trip):
+
+        rdpTrip = rdp.rdp(trip, self.rdpFactor_)
+
         angle_feature_elements = []
-        for index,p in list(enumerate(trip)):
-            current_angle = self.get_angle(self, index, trip)
+        for index,p in list(enumerate(rdpTrip)):
+            current_angle = self.get_angle(self, index, rdpTrip)
 
             if current_angle == -1:
                 continue
 
-            length0 = self.distance(trip[index-1], p)
-            length1 = self.distance(p, trip[index+1])
+            length0 = self.distance(rdpTrip[index-1], p)
+            length1 = self.distance(p, rdpTrip[index+1])
             driven_distance = length0 + length1
             feature_value = driven_distance * current_angle;
             angle_feature_elements.append(feature_value)
