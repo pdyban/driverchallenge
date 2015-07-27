@@ -2,8 +2,10 @@ from sklearn.cluster import DBSCAN
 import numpy as np
 
 from utils import create_complete_submission
+from utils import save_3d_plot_to_file, save_1d_plot_to_file
+
 from features import AccelerationFeature
-from utils import save_3d_plot_to_file
+from features import AngleFeature
 
 
 def clusterize(_features):
@@ -36,22 +38,36 @@ def clusterize_driver(X, _path):
     # X contains: (driver_id, trip_id, all features...)
 
     res = clusterize(X)
+    try:
+        x, y, z, c = [i[2] for i in X], [i[3] for i in X], [i[4] for i in X], [pred[2] for pred in res]
+        save_3d_plot_to_file(x, y, z, c, _path.replace('.csv', '.png'))
 
-    x, y, z, c = [i[2] for i in X], [i[3] for i in X], [i[4] for i in X], [pred[2] for pred in res]
-
-    save_3d_plot_to_file(x, y, z, c, _path.replace('.csv', '.png'))
+    except IndexError:
+        x, c = [i[2] for i in X], [pred[2] for pred in res]
+        save_1d_plot_to_file(x, c, _path.replace('.csv', '.png'))
 
     return res  # TODO: are all trips included?
 
 
 if __name__ == '__main__':
+    # submission result: 0.52
+    #features = [(10, 30, True, np.median), (31, 50, True, np.median), (51, 80, True, np.median), (10, 30, False, np.median)]
+    #pdyban.create_complete_submission(features, parallel=True)
+
+    # submission result: 0.51
+    #features = [(10, 30, True, np.std), (31, 50, True, np.std), (51, 80, True, np.std), (10, 30, False, np.std)]
+    #pdyban.create_complete_submission(features, parallel=True)
+
     # submission result: 0.47
     #features = [(10, 30, True, np.median), (31, 50, True, np.median), (51, 80, True, np.median), (10, 30, False, np.median)]
     #features += [(10, 30, True, np.std), (31, 50, True, np.std), (51, 80, True, np.std), (10, 30, False, np.std)]
-    #create_complete_submission(features, True)
+    #pdyban.create_complete_submission(features, parallel=True)
 
     features = [AccelerationFeature(10, 31, True, np.median),
                 AccelerationFeature(31, 50, True, np.median),
                 AccelerationFeature(51, 80, True, np.median),
                 AccelerationFeature(10, 31, False, np.median), ]
-    create_complete_submission(clusterize_driver, features, False)
+
+    features = [AngleFeature(0), ]
+
+    create_complete_submission(clusterize_driver, features, True)
