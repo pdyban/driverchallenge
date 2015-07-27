@@ -104,7 +104,6 @@ def create_complete_submission(estimator, features, parallel):
     if parallel:
         drivers = list_all_drivers()[:60]
         Parallel(n_jobs=8)(delayed(write_to_file)(estimator, driver, subdir, features) for driver in drivers)
-        test_submission(subdir)
 
     else:
         #for driver in list_all_drivers():
@@ -112,6 +111,7 @@ def create_complete_submission(estimator, features, parallel):
         #    raise Exception('Stop me')
         [write_to_file(driver, subdir, features) for driver in list_all_drivers()]
 
+    test_submission(subdir)
     subprocess.call("cat *.csv >submission.csv", cwd=subdir)
 
     # when this script is finished, call cat *.csv >submission.csv, to merge all files into 1
