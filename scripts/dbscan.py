@@ -2,18 +2,17 @@ from sklearn.cluster import DBSCAN
 import numpy as np
 
 from utils import create_complete_submission
-from utils import compute_all_features
 from features import AccelerationFeature
 from utils import save_3d_plot_to_file
-import os.path
 
 
 def clusterize(_features):
     def major_index(l):
         from collections import defaultdict
+
         d = defaultdict(int)
         for item in l:
-            d[item]+=1
+            d[item] += 1
 
         return max(d.iteritems(), key=lambda x: x[1])[0]
 
@@ -21,12 +20,12 @@ def clusterize(_features):
 
     Y = est.fit_predict(_features[:, 2:])
 
-    y_pred = [(i==major_index(Y)) for i in Y]
+    y_pred = [(i == major_index(Y)) for i in Y]
 
     return np.c_[_features[:, 0], _features[:, 1], y_pred]
 
 
-def clusterize_driver(_driver, _path, _features):
+def clusterize_driver(X, _path):
     """
     Creates a single submission file.
 
@@ -34,17 +33,13 @@ def clusterize_driver(_driver, _path, _features):
     :param _path: subdirectory where this submission part will be stored
     :return list of values: (driver, trip, prediction) for each trip for this driver
     """
-    print 'computing model for', _driver, _path, _features, '...'
-
-    # X consists: (driver_id, trip_id, all features...)
-    X = compute_all_features(int(_driver), _features)
+    # X contains: (driver_id, trip_id, all features...)
 
     res = clusterize(X)
 
     x, y, z, c = [i[2] for i in X], [i[3] for i in X], [i[4] for i in X], [pred[2] for pred in res]
 
-    submission_path = os.path.join(_path, str(_driver) + '.png')
-    save_3d_plot_to_file(x, y, z, c, submission_path.replace('.csv', '.png'))
+    save_3d_plot_to_file(x, y, z, c, _path.replace('.csv', '.png'))
 
     return res  # TODO: are all trips included?
 
