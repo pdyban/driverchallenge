@@ -54,3 +54,15 @@ def write_submission_to_file(filename, features):
             w.writerow([index] + ['%d' % line[2]])
 
     print 'submission file written to', filename
+
+
+# prepare plot
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import axes3d, Axes3D
+
+
+def save_3d_plot_to_file(x, y, z, c, submission_path):
+    p = plt.subplot(1, 1, 1, projection='3d')
+    p.scatter(x, y, z, c=c, marker='+')
+    # save plot to file
+    p.figure.savefig(submission_path)

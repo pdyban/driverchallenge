@@ -8,10 +8,7 @@ from datetime import datetime  # for directory names with current time
 import os
 from collections import OrderedDict
 import subprocess
-
-# prepare plot
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d, Axes3D
+from local_io import write_submission_to_file
 
 #PARALLEL = False
 
@@ -21,22 +18,6 @@ pathToDriverData = 'drivers_npy'  # compute trip using ConvertDriverDataToNpy.py
 
 
 from local_io import get_trip_npy
-
-
-def compute_all_features(driver, features):
-    res = []  # container for all predictions
-
-    for trip in range(1, 201):  # all trips
-        path_points = get_trip_npy(driver, trip, pathToDriverData)
-
-        pred = []
-        for feature in features:
-            pred.append( feature.compute(path_points) )
-
-        if all(not math.isnan(val) for val in pred):
-            res = [trip] + pred
-
-    return np.array(res)
 
 
 def list_all_drivers():
@@ -69,6 +50,24 @@ def list_all_drives():
     return drives
 
 
+def compute_all_features(driver, features):
+    res = []  # container for all predictions
+
+    for trip in range(1, 201):  # all trips
+        path_points = get_trip_npy(driver, trip, pathToDriverData)
+
+        feature_array = []
+        for feature in features:
+            feature_array.append( feature.compute(path_points) )
+
+        if all(not math.isnan(val) for val in feature_array):
+            res += [[driver, trip] + feature_array]
+
+            # TODO HERE!!!!
+
+    return np.array(res)
+
+
 def create_complete_submission(_create_driver_submission, features, parallel):
     """
     Creates a submission file for all drivers and their trips.
@@ -81,13 +80,14 @@ def create_complete_submission(_create_driver_submission, features, parallel):
     # create tmp directory for dumping all trips into
     os.makedirs(subdir)
 
-    def write_to_file(driver, _subdir, features):
+    def write_to_file(_driver, _subdir, _features):
         """
         Wraps feature generation and writes results to file.
         """
-        res = _create_driver_submission(driver, _subdir, features)
+        res = _create_driver_submission(driver, _subdir, _features)
 
         # save feature prediction to file
+        submission_path = os.path.join(_subdir, str(_driver) + '.csv')
         write_submission_to_file(submission_path, res)
 
     if parallel:
