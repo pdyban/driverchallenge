@@ -66,7 +66,7 @@ def compute_all_features(driver, features):
 
         else:
             res += [[driver, trip] + [None]*len(feature_array)]
-            raise ValueError('Hello world')
+            raise ValueError('Data not available for at least one of the features')
             # if data is not valid, then return None, handle this case separately during estimation
 
     return np.array(res)
@@ -78,12 +78,14 @@ def write_to_file(_estimator, _driver, _subdir, _features):
 
     This function cannot be local, it has to be pickled by joblib.
     """
-    print 'computing model for', _driver, _subdir, _features, '...'
+    print 'computing model for driver', _driver, 'using', _features
 
     X = compute_all_features(int(_driver), _features)
 
     submission_path = os.path.join(_subdir, str(_driver) + '.csv')
     submission = _estimator(X, submission_path)
+
+    #print 'storing prediction file to', _subdir
 
     # save feature prediction to file
     write_submission_to_file(submission_path, submission)
@@ -102,14 +104,15 @@ def create_complete_submission(estimator, features, parallel):
     os.makedirs(subdir)
 
     if parallel:
-        drivers = list_all_drivers()[:60]
+        drivers = list_all_drivers()
         Parallel(n_jobs=8)(delayed(write_to_file)(estimator, driver, subdir, features) for driver in drivers)
 
     else:
         #for driver in list_all_drivers():
-        #    _create_submission(driver, subdir, features)
+        #for driver in [12]:
+        #    write_to_file(estimator, driver, subdir, features)
         #    raise Exception('Stop me')
-        [write_to_file(driver, subdir, features) for driver in list_all_drivers()]
+        [write_to_file(estimator, driver, subdir, features) for driver in list_all_drivers()]
 
     test_submission(subdir)
     subprocess.call("cat *.csv >submission.csv", cwd=subdir)
