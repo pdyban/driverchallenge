@@ -3,7 +3,12 @@ __author__ = 'scigor'
 from feature import Feature
 import numpy as np
 import math
-import rdp
+try:
+    from rdp import rdp
+except ImportError:
+    from warnings import warn
+    warn("RDP not found, Angle Feature will not run")
+    rdp = lambda x, y: None
 
 
 class AngleFeature(Feature):
@@ -17,7 +22,7 @@ class AngleFeature(Feature):
 
     def compute(self, trip):
 
-        rdpTrip = rdp.rdp(trip, self.rdpFactor_)
+        rdpTrip = rdp(trip, self.rdpFactor_)
 
         angle_feature_elements = []
         for index,p in list(enumerate(rdpTrip)):
