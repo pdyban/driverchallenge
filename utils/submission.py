@@ -69,6 +69,23 @@ def compute_all_features(driver, features):
     return np.array(res)
 
 
+def write_to_file(_estimator, _driver, _subdir, _features):
+    """
+    Wraps feature generation and writes results to file.
+
+    This function cannot be local, it has to be pickled by joblib.
+    """
+    print 'computing model for', _driver, _subdir, _features, '...'
+
+    X = compute_all_features(int(_driver), _features)
+
+    submission_path = os.path.join(_subdir, str(_driver) + '.csv')
+    submission = _estimator(X, submission_path)
+
+    # save feature prediction to file
+    write_submission_to_file(submission_path, submission)
+
+
 def create_complete_submission(estimator, features, parallel):
     """
     Creates a submission file for all drivers and their trips.
@@ -81,23 +98,9 @@ def create_complete_submission(estimator, features, parallel):
     # create tmp directory for dumping all trips into
     os.makedirs(subdir)
 
-    def write_to_file(_driver, _subdir, _features):
-        """
-        Wraps feature generation and writes results to file.
-        """
-        print 'computing model for', _driver, _subdir, _features, '...'
-
-        X = compute_all_features(int(_driver), _features)
-
-        submission_path = os.path.join(_subdir, str(_driver) + '.csv')
-        submission = estimator(X, submission_path)
-
-        # save feature prediction to file
-        write_submission_to_file(submission_path, submission)
-
     if parallel:
         drivers = list_all_drivers()
-        Parallel(n_jobs=8)(delayed(write_to_file)(driver, subdir, features) for driver in drivers)
+        Parallel(n_jobs=8)(delayed(write_to_file)(estimator, driver, subdir, features) for driver in drivers)
 
     else:
         #for driver in list_all_drivers():
