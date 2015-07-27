@@ -16,7 +16,7 @@ class AccelerationFeature(Speed, Feature):
         self.to_ = _to
         self.from_ = _from
         self.acc = _acceleration
-        self.feat = _feature  # np.median, np.std
+        self.feat = _feature  # e.g. np.median, np.std
 
     def __repr__(self):
         return "%s %s feature for speed interval (%d, %d)" % (self.feat.__name__, ['decceleration', 'acceleration'][self.acc], self.from_, self.to_)
@@ -31,7 +31,7 @@ class AccelerationFeature(Speed, Feature):
         contiguous_intervals = self.find_intervals(interval, self.acc)  # last param is acceleration parameter
 
         if len(contiguous_intervals) == 0:
-            feature_val = 0.0  # todo: think about replacement values for unavailable data
+            feature_val = Feature.INVALIDDATAREPLACEMENT
 
         else:
             feature_val = self.compute_acceleration_feature(contiguous_intervals, feat=self.feat)
@@ -61,4 +61,4 @@ class AccelerationFeature(Speed, Feature):
             return feat(prefeature)
 
         else:
-            return 0.0  # if there isn't a single valid interval
+            return Feature.INVALIDDATAREPLACEMENT  # if there isn't a single valid interval
