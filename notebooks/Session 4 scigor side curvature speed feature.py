@@ -32,8 +32,8 @@ def angle_feature(ctrip):
             driven_distance = length0 + length1
             feature_value = driven_distance * current_angle;
             angle_feature_elements.append(feature_value)
-        else:
-            angle_feature_elements.append(-1)
+        #else:
+            # do nothing angle_feature_elements.append(-1)
             
     #dcVis.plot_speed(angles)        
     return angle_feature_elements
