@@ -56,6 +56,13 @@ def compute_percentile_10(x):
     return np.percentile(x, 10)
 
 
+def compute_percentile_20(x):
+    """
+    Local function that wraps numpy's percentile is necessary, since joblib needs to pickle functions.
+    """
+    return np.percentile(x, 20)
+
+
 if __name__ == '__main__':
     # submission result: 0.52
     #features = [(10, 30, True, np.median), (31, 50, True, np.median), (51, 80, True, np.median), (10, 30, False, np.median)]
@@ -75,8 +82,13 @@ if __name__ == '__main__':
     #             AccelerationFeature(51, 80, True, np.median),
     #             AccelerationFeature(10, 31, False, np.median), ]
 
+    # submission result: 0.61
     #features = [AngleFeature(0, np.mean), ]
 
-    features = [AngleFeature(0, compute_percentile_10), ]
+    # submission result: 0.52
+    #features = [AngleFeature(0, compute_percentile_10), ]
+
+    # submission result: 0.57
+    features = [AngleFeature(0, compute_percentile_20), ]
 
     create_complete_submission(clusterize_driver, features, True)
