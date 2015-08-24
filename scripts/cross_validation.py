@@ -1,4 +1,6 @@
 # coding=utf-8
+from numpy.core.multiarray import concatenate
+
 __author__ = 'missoni'
 
 """
@@ -16,9 +18,10 @@ from features import AccelerationFeature
 import numpy as np
 from utils import create_complete_submission
 from sklearn.ensemble import RandomForestClassifier
+from utils import list_all_drivers, PATHTODRIVERDATA
 
 
-def cross_validate(_features0, _features1, percentage):
+def cross_validate(_features_true, _features_false, percentage):
     """
     1) split data by cross validation into train & test
     2) validate using random forest
@@ -31,27 +34,32 @@ def cross_validate(_features0, _features1, percentage):
     res1 = []
 
     for p in range((int)(1.0/percentage)):
-        _from = _features0.shape[0] * p*percentage
-        _to = _from + ( percentage * _features0.shape[0] )
+        _from = _features_true.shape[0] * p*percentage
+        _to = _from + ( percentage * _features_true.shape[0] )
 
-        trainFeature0 = np.vstack((_features0[0:_from], _features0[_to:]))
-        testFeature0 = _features0[_from:_to]
+        trainFeature0 = np.vstack((_features_true[0:_from], _features_true[_to:]))
+        testFeature0 = _features_true[_from:_to]
 
-        trainFeature1 = np.vstack((_features1[0:_from], _features1[_to:]))
-        testFeature1 = _features1[_from:_to]
+        _from = _features_false.shape[0] * p*percentage
+        _to = _from + ( percentage * _features_false.shape[0] )
 
+        trainFeature1 = np.vstack((_features_false[0:_from], _features_false[_to:]))
+        #testFeature1 = _features_false[_from:_to]
+
+        # extend train feature true in order to balance against a bigger number of false features
+        trainFeature0 = np.repeat(trainFeature0, (trainFeature1.shape[0]/trainFeature0.shape[0]))[:, np.newaxis]
 
         X_train = np.vstack((trainFeature0, trainFeature1))
-        X_test = np.vstack((testFeature0, testFeature1))
+        X_test = testFeature0
         Y_train = np.append(np.ones(trainFeature0.size), np.zeros(trainFeature1.size))
-        Y_test = np.append(np.ones(testFeature0.size), np.zeros(testFeature1.size))
+        #Y_test = np.append(np.ones(testFeature0.size), np.zeros(testFeature1.size))
 
         clf = RandomForestClassifier(n_estimators=25)
         clf.fit(X_train, Y_train)
         clf_probs = clf.predict_proba(X_test)
 
-        res0 = np.append(res0, [elem[0] for elem in clf_probs[:clf_probs.shape[0]/2]])
-        res1 = np.append(res1, [elem[0] for elem in clf_probs[clf_probs.shape[0]/2:]])
+        res0 = np.append(res0, [elem[0] for elem in clf_probs])
+        #res1 = np.append(res1, [elem[0] for elem in clf_probs[clf_probs.shape[0]/2:]])
 
 
     return res0, res1
@@ -74,34 +82,46 @@ def cvalidate_driver(X, _path):
     return res
 
 if __name__ == '__main__':
-    # submission result:
-    features = [AccelerationFeature(10, 30, True, np.mean), ]  # using RDP
+    feat1 = np.load('../features_npy/feat1.npy')
+    feat2 = np.load('../features_npy/feat2.npy')
 
-    #create_complete_submission(cvalidate_driver, features, False)
+    # for cross-validation, extend feature arrays by the width of the sliding window
+    feat1_ext = np.vstack((feat1, feat1[:1000, :]))
 
-    from utils import local_io
+    # naive test: driver 1 vs driver 2
+    #features_true = feat1[:200, 2, np.newaxis]
+    #features_false = feat2[200:400, 2, np.newaxis]
 
-    pathToDriverData = '/home/qwerty/kaggle/drivers_npy'
+    pred = np.empty(0)[:, np.newaxis]
 
-    features_driver1 = []
-    features_driver2 = []
+    drivers = list_all_drivers(PATHTODRIVERDATA)[:10]
+    for driver_index, driver in enumerate(drivers):
+        # test 4 times driver 1 vs driver 2, 3, 4
+        begin = driver_index*200
+        end = (driver_index+1)*200
+        end_false = (driver_index+4+1)*200
 
-    for i in range(1,201):
+        features_true = feat1_ext[begin:end, 2, np.newaxis]
+        features_false = feat1_ext[end:end_false, 2, np.newaxis]
 
-        trip1 = local_io.get_trip_npy(1, i, pathToDriverData)
-        trip2 = local_io.get_trip_npy(2, i, pathToDriverData)
+        res0, res1 = cross_validate(features_true, features_false, 0.2)
 
-        trip1_feature = features[0].compute(trip1)
-        trip2_feature = features[0].compute(trip2)
-        features_driver1 = np.append(features_driver1, trip1_feature)
-        features_driver2 = np.append(features_driver2, trip2_feature)
+        pred = np.vstack((pred, res0[:, np.newaxis]))
 
-
-    res0, res1 = cross_validate(np.vstack(features_driver1), np.vstack(features_driver2), 0.2)
+    res = np.c_[(feat1[:, 0], feat1[:, 1], pred)]
 
     import matplotlib.pyplot as plt
 
-    plt.scatter(range(200), res0)
+    #plt.scatter(range(res0.shape[0]), res0)
+    #plt.show()
+
+
+    hist = np.histogram(res0)
+
+    # the histogram of the data
+    n, bins, patches = plt.hist(res[:200, 2], normed=0, facecolor='green', alpha=0.75)
+    n, bins, patches = plt.hist(res[200:400, 2], normed=0, facecolor='red', alpha=0.75)
+    #plt.plot(hist[1][:-1], hist[0], 'r--', linewidth=1)
     plt.show()
 
 
