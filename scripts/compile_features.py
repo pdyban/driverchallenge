@@ -28,7 +28,7 @@ def compile_features(features):
         - compute value for each driver and trip
         - store result to file
         """
-        drivers = list_all_drivers(PATHTODRIVERDATA)[:10]
+        drivers = list_all_drivers(PATHTODRIVERDATA)
         trips = range(1, 201)
 
         values = np.empty((len(drivers)*len(trips), 3))
@@ -53,9 +53,12 @@ def compile_features(features):
 
 
 if __name__ == '__main__':
-    features = [AngleFeature(0, np.mean), ]
-    features = [AccelerationFeature(10, 31, True, np.mean),
-                AccelerationFeature(30, 51, True, np.mean),
-                AccelerationFeature(30, 51, False, np.mean), ]
+    # select features for pre-compilation
+    features = [AccelerationFeature(10, 31, True, np.median),
+                AccelerationFeature(30, 51, True, np.median),
+                AccelerationFeature(30, 51, False, np.median),
+                AccelerationFeature(50, 71, True, np.median),
+                AccelerationFeature(50, 71, False, np.median),
+                AngleFeature(0, np.mean), ]
 
     compile_features(features)
