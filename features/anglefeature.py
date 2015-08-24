@@ -4,6 +4,8 @@ from feature import Feature
 import numpy as np
 import math
 try:
+    import sys
+    sys.path.append('../RDP')
     from rdp import rdp
 except ImportError:
     from warnings import warn
