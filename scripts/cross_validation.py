@@ -19,6 +19,7 @@ import numpy as np
 from utils import create_complete_submission
 from sklearn.ensemble import RandomForestClassifier
 from utils import list_all_drivers, PATHTODRIVERDATA
+import os
 
 
 def cross_validate(_features_true, _features_false, percentage):
@@ -82,14 +83,21 @@ def cvalidate_driver(X, _path):
     return res
 
 if __name__ == '__main__':
-    feat1 = np.load('../features_npy/feat1.npy')
-    feat2 = np.load('../features_npy/feat2.npy')
+    features = []
+    for feat_files in os.listdir('../features_npy/'):
 
-    # for cross-validation, extend feature arrays by the width of the sliding window
-    feat1_ext = np.vstack((feat1, feat1[:1000, :]))
-    feat2_ext = np.vstack((feat2, feat2[:1000, :]))
+        feat1 = np.load(os.path.join('../features_npy/', feat_files))
+        drivers_list = feat1[:, 0]
+        trips_list = feat1[:, 1]
 
-    features = np.hstack((feat1_ext[:, 2, np.newaxis], feat2_ext[:, 2, np.newaxis]))
+        # for cross-validation, extend feature arrays by the width of the sliding window
+        feat1_ext = np.vstack((feat1, feat1[:1000, :]))
+
+        features.append(feat1_ext[:, 2, np.newaxis])
+
+    features = np.hstack([f for f in features])
+
+    #features = np.hstack((feat1_ext[:, 2, np.newaxis], feat2_ext[:, 2, np.newaxis]))
 
     # naive test: driver 1 vs driver 2
     #features_true = feat1[:200, 2, np.newaxis]
@@ -97,8 +105,10 @@ if __name__ == '__main__':
 
     pred = np.empty(0)[:, np.newaxis]
 
-    drivers = list_all_drivers(PATHTODRIVERDATA)[:10]
+    drivers = list_all_drivers(PATHTODRIVERDATA)
     for driver_index, driver in enumerate(drivers):
+        print 'evaluating driver', driver, '(%d%%)' % (driver_index*100.0/len(drivers))
+
         # test 4 times driver 1 vs driver 2, 3, 4
         begin = driver_index*200
         end = (driver_index+1)*200
@@ -111,6 +121,7 @@ if __name__ == '__main__':
 
         pred = np.vstack((pred, res0[:, np.newaxis]))
 
+    # replace with drivers_list and trips_list
     res = np.c_[(feat1[:, 0], feat1[:, 1], pred)]
 
     import matplotlib.pyplot as plt
