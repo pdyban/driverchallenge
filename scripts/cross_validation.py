@@ -19,6 +19,9 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
 
+PARALLEL = True
+
+
 def cross_validate(_features_true, _features_false, percentage):
     """
     1) split data by cross validation into train & test
@@ -103,13 +106,12 @@ if __name__ == '__main__':
     #features_true = feat1[:200, 2, np.newaxis]
     #features_false = feat2[200:400, 2, np.newaxis]
 
-    pred = np.empty(0)[:, np.newaxis]
+    #pred = np.empty(0)[:, np.newaxis]
 
-    mean_score = 0.0;
+    #pred_mthreaded = []
 
-    num_drivers = 2738
-    for driver_index in range(num_drivers):
-        print 'evaluating driver index', driver_index, '(%d%%)' % (driver_index*100.0/num_drivers)
+    def compute_iteration(driver_index):
+        print 'evaluating driver index', driver_index#, '(%d%%)' % (driver_index*100.0/num_drivers)
 
         # test 4 times driver 1 vs driver 2, 3, 4
         begin = driver_index*200
@@ -121,23 +123,32 @@ if __name__ == '__main__':
 
         res0, score = cross_validate(features_true, features_false, 0.2)
 
-        pred = np.vstack((pred, res0[:, np.newaxis]))
+        return res0[:, np.newaxis], score
+        #pred = np.vstack((pred, res0[:, np.newaxis]))
 
-        mean_score += score
+        #mean_score += score
 
-    mean_score = mean_score / num_drivers
-    print mean_score
+    #mean_score = 0.0
+
+    num_drivers = 2738
+    if PARALLEL:
+        from multiprocessing import Pool
+        p = Pool()
+        pred_mthreaded = p.map(compute_iteration, range(num_drivers))
+
+    else:
+        pred_mthreaded = []
+        for driver_index in range(num_drivers):
+            pred_mthreaded.append(compute_iteration(driver_index))
+
+    print 'mean score', np.mean([score[1] for score in pred_mthreaded])
 
     # replace with drivers_list and trips_list
-    res = np.c_[(feat1[:, 0], feat1[:, 1], pred)]
+    res = np.c_[(drivers_list, trips_list, np.vstack([pred[0] for pred in pred_mthreaded]))]
+
+    np.save(open('../tmp/res.npy', 'w'), res)
 
     import matplotlib.pyplot as plt
-
-    #plt.scatter(range(res0.shape[0]), res0)
-    #plt.show()
-
-
-    hist = np.histogram(res0)
 
     # the histogram of the data
     n, bins, patches = plt.hist(res[:200, 2], normed=0, facecolor='green', alpha=0.75)
