@@ -18,10 +18,14 @@ import os
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from time import time
+from datetime import datetime
+from utils import write_submission_to_file
 
 
 PARALLEL = True
-NUMDRIVERS = 2739
+NUMDRIVERS = 2736
+SPREAD = 4
+THRESHOLD = 0.5
 
 
 def cross_validate(_features_true, _features_false, percentage):
@@ -57,14 +61,18 @@ def cross_validate(_features_true, _features_false, percentage):
         Y_train = np.append(np.ones(trainFeature0.shape[0]), np.zeros(trainFeature1.shape[0]))
         Y_test = np.ones(testFeature0.shape[0])
 
-        clf = RandomForestClassifier(n_estimators=25)
+        clf = RandomForestClassifier(n_estimators=5)
+        #from sklearn.ensemble import GradientBoostingClassifier
+        #clf = GradientBoostingClassifier()
         clf.fit(X_train, Y_train)
 
-        score = score + clf.score(X_test, Y_test)
+        #score = score + clf.score(X_test, Y_test)
 
         clf_probs = clf.predict_proba(X_test)
 
-        res0 = np.append(res0, [elem[0] for elem in clf_probs])
+        score += sum(1 for i in clf_probs if i[1] > THRESHOLD) * 1.0 / len(clf_probs)
+
+        res0 = np.append(res0, [elem[1] for elem in clf_probs])
 
     score = score * percentage
 
@@ -84,28 +92,34 @@ def cvalidate_driver(X, _path):
 
     return res
 
+def list_feature_files():
+    #return [os.path.join('../features_npy/', f) for f in ['feat%d.npy' % i for i in [0,1,2,16]]]
+    return [os.path.join('../features_npy_old/', f) for f in ['feat%d.npy' % i for i in [18]]]
+    #return [os.path.join('../features_npy/', f) for f in os.listdir('../features_npy/')]
+
 if __name__ == '__main__':
     features = []
-    for feat_files in os.listdir('../features_npy/'):
+    for feat_files in list_feature_files():
 
-        feat1 = np.load(os.path.join('../features_npy/', feat_files))
+        feat1 = np.load(feat_files)
         drivers_list = feat1[:, 0]
         trips_list = feat1[:, 1]
 
         # for cross-validation, extend feature arrays by the width of the sliding window
-        feat1_ext = np.vstack((feat1, feat1[:1000, :]))
+        feat1_ext = np.vstack((feat1, feat1[:200*SPREAD, :]))
 
         features.append(feat1_ext[:, 2, np.newaxis])
 
     features = np.hstack([f for f in features])
 
     def compute_iteration(driver_index):
-        print 'evaluating driver index', driver_index#, '(%d%%)' % (driver_index*100.0/num_drivers)
+        if driver_index % 100 == 0:
+            print 'evaluating driver index', driver_index
 
         # test 4 times driver 1 vs driver 2, 3, 4
         begin = driver_index*200
         end = (driver_index+1)*200
-        end_false = (driver_index+4+1)*200
+        end_false = (driver_index+SPREAD+1)*200
 
         features_true = features[begin:end, :]
         features_false = features[end:end_false, :]
@@ -135,13 +149,17 @@ if __name__ == '__main__':
 
     np.save(open('../tmp/res.npy', 'w'), res)
 
-    # TODO: convert probabilities to true/false indicator
-    np.savetxt('res.csv', np.array(res), delimiter=';', fmt='%d')
-
     import matplotlib.pyplot as plt
 
     # the histogram of the data
     n, bins, patches = plt.hist(res[:200, 2], normed=0, facecolor='green', alpha=0.75)
     n, bins, patches = plt.hist(res[200:400, 2], normed=0, facecolor='red', alpha=0.75)
     n, bins, patches = plt.hist(res[400:600, 2], normed=0, facecolor='yellow', alpha=0.75)
+    n, bins, patches = plt.hist(res[600:800, 2], normed=0, facecolor='blue', alpha=0.75)
     plt.show()
+
+    # apply threshold for submission
+    res = np.c_[(drivers_list, trips_list, np.array(np.where(pred > THRESHOLD, 1, 0)))]
+
+    subdir = os.path.join('../submissions/', datetime.now().strftime('%Y%m%d__%H%M%S'))
+    write_submission_to_file('%s.csv' % subdir, res)
