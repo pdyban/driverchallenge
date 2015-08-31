@@ -30,7 +30,7 @@ class AccelerationPercentileFeature(Speed, Feature):
         self.value = value
 
     def __repr__(self):
-        return "Acceleration percentile feature %d" % self.value
+        return "Acceleration percentile feature %s" % self.value
 
     def compute(self, trip):
         speed = self.get_speed(trip)
