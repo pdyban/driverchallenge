@@ -7,28 +7,29 @@ Compiles list of features to files.
 from features import AccelerationFeature
 from features import AngleFeature
 from features import SpeedPercentileFeature
+from features import AccelerationPercentileFeature
+from features import TripLengthFeature
 import numpy as np
 from utils import get_trip_npy, list_all_drivers
 from utils import PATHTODRIVERDATA
+import itertools
 
 
-def compile_features(features):
-    """
-    for each feature, do:
-      for each driver, do:
-        for each trip, do:
-          create numpy file: driver_id, trip_id, feature_value
+PARALLEL = True
 
-    :param features: list of features, each a derivative of Feature type.
-    :param trips: list of trips, for each driver
-    """
-    def compile_feature(feature, fname):
+def _compile_feature_mt(args):
+        feature, fname = args[0], args[1]
+        _compile_feature(feature, fname)
+
+def _compile_feature(feature, fname):
         """
         Compiles a feature to file.
 
         - compute value for each driver and trip
         - store result to file
         """
+        print 'computing', str(feature)
+
         drivers = list_all_drivers(PATHTODRIVERDATA)
         trips = range(1, 201)
 
@@ -48,9 +49,26 @@ def compile_features(features):
         with open(fname) as f:
             assert np.load(f).all() == values.all(), "File not written correctly"
 
-    for index, feature in enumerate(features):
-        print 'computing', str(feature)
-        compile_feature(feature, '../features_npy/feat%d.npy' % index)
+
+def compile_features(features):
+    """
+    for each feature, do:
+      for each driver, do:
+        for each trip, do:
+          create numpy file: driver_id, trip_id, feature_value
+
+    :param features: list of features, each a derivative of Feature type.
+    :param trips: list of trips, for each driver
+    """
+    if PARALLEL:
+        from multiprocessing import Pool
+        p = Pool()
+        p.map(_compile_feature_mt,
+              itertools.izip(features, ('../features_npy/feat%d.npy' % index for index, f in enumerate(features))))
+
+    else:
+        for index, feature in enumerate(features):
+            _compile_feature(feature, '../features_npy/feat%d.npy' % index)
 
 
 if __name__ == '__main__':
@@ -65,7 +83,8 @@ if __name__ == '__main__':
     #features = [SpeedPercentileFeature(5),
     #            SpeedPercentileFeature(95), ]
 
-    features = [AccelerationFeature(5),
-                AccelerationFeature(95),]
+    features = [AccelerationPercentileFeature(5),
+                AccelerationPercentileFeature(95),
+                TripLengthFeature()]
 
     compile_features(features)
