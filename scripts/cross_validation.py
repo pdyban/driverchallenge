@@ -17,9 +17,11 @@ import os
 
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
+from time import time
 
 
 PARALLEL = True
+NUMDRIVERS = 2739
 
 
 def cross_validate(_features_true, _features_false, percentage):
@@ -69,9 +71,6 @@ def cross_validate(_features_true, _features_false, percentage):
     return res0, score
 
 
-    #return np.c_[_features[:, 0], _features[:, 1], y_pred]
-
-
 def cvalidate_driver(X, _path):
     """
     Creates a single submission file.
@@ -100,16 +99,6 @@ if __name__ == '__main__':
 
     features = np.hstack([f for f in features])
 
-    #features = np.hstack((feat1_ext[:, 2, np.newaxis], feat2_ext[:, 2, np.newaxis]))
-
-    # naive test: driver 1 vs driver 2
-    #features_true = feat1[:200, 2, np.newaxis]
-    #features_false = feat2[200:400, 2, np.newaxis]
-
-    #pred = np.empty(0)[:, np.newaxis]
-
-    #pred_mthreaded = []
-
     def compute_iteration(driver_index):
         print 'evaluating driver index', driver_index#, '(%d%%)' % (driver_index*100.0/num_drivers)
 
@@ -123,30 +112,31 @@ if __name__ == '__main__':
 
         res0, score = cross_validate(features_true, features_false, 0.2)
 
-        return res0[:, np.newaxis], score
-        #pred = np.vstack((pred, res0[:, np.newaxis]))
+        return res0, score
 
-        #mean_score += score
-
-    #mean_score = 0.0
-
-    num_drivers = 2738
+    start = time()
     if PARALLEL:
         from multiprocessing import Pool
         p = Pool()
-        pred_mthreaded = p.map(compute_iteration, range(num_drivers))
+        pred_mthreaded = p.map(compute_iteration, range(NUMDRIVERS))
 
     else:
         pred_mthreaded = []
-        for driver_index in range(num_drivers):
+        for driver_index in range(NUMDRIVERS):
             pred_mthreaded.append(compute_iteration(driver_index))
 
-    print 'mean score', np.mean([score[1] for score in pred_mthreaded])
+    end = time()
 
-    # replace with drivers_list and trips_list
-    res = np.c_[(drivers_list, trips_list, np.vstack([pred[0] for pred in pred_mthreaded]))]
+    print 'model evaluation finished in', end-start, 'seconds with mean score =', np.mean([score[1] for score in pred_mthreaded])
+
+    pred = np.vstack([pred[0][:, np.newaxis] for pred in pred_mthreaded])
+
+    res = np.c_[(drivers_list, trips_list, pred)]
 
     np.save(open('../tmp/res.npy', 'w'), res)
+
+    # TODO: convert probabilities to true/false indicator
+    np.savetxt('res.csv', np.array(res), delimiter=';', fmt='%d')
 
     import matplotlib.pyplot as plt
 
@@ -154,7 +144,4 @@ if __name__ == '__main__':
     n, bins, patches = plt.hist(res[:200, 2], normed=0, facecolor='green', alpha=0.75)
     n, bins, patches = plt.hist(res[200:400, 2], normed=0, facecolor='red', alpha=0.75)
     n, bins, patches = plt.hist(res[400:600, 2], normed=0, facecolor='yellow', alpha=0.75)
-    #plt.plot(hist[1][:-1], hist[0], 'r--', linewidth=1)
     plt.show()
-
-
