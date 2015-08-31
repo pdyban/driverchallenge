@@ -48,6 +48,7 @@ def write_submission_to_file(filename, features):
     """
     with open(filename, 'w') as f:
         w = writer(f)
+        w.writerow(['driver_trip', 'prob'])
 
         for line in features:
             index = '%d_%d' % (line[0], line[1])
