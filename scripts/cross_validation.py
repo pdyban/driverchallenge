@@ -1,5 +1,4 @@
 # coding=utf-8
-from numpy.core.multiarray import concatenate
 
 __author__ = 'missoni'
 
@@ -14,12 +13,10 @@ Inspiration from here (http://webmining.olariu.org/kaggle-driver-telematics/):
 
 """
 
-from features import AccelerationFeature
-import numpy as np
-from utils import create_complete_submission
-from sklearn.ensemble import RandomForestClassifier
-from utils import list_all_drivers, PATHTODRIVERDATA
 import os
+
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
 
 
 def cross_validate(_features_true, _features_false, percentage):
@@ -32,7 +29,7 @@ def cross_validate(_features_true, _features_false, percentage):
     """
 
     res0 = []
-    res1 = []
+    score = 0.0
 
     for p in range((int)(1.0/percentage)):
         _from = _features_true.shape[0] * p*percentage
@@ -53,17 +50,20 @@ def cross_validate(_features_true, _features_false, percentage):
         X_train = np.vstack((trainFeature0, trainFeature1))
         X_test = testFeature0
         Y_train = np.append(np.ones(trainFeature0.shape[0]), np.zeros(trainFeature1.shape[0]))
-        #Y_test = np.append(np.ones(testFeature0.size), np.zeros(testFeature1.size))
+        Y_test = np.ones(testFeature0.shape[0])
 
         clf = RandomForestClassifier(n_estimators=25)
         clf.fit(X_train, Y_train)
+
+        score = score + clf.score(X_test, Y_test)
+
         clf_probs = clf.predict_proba(X_test)
 
         res0 = np.append(res0, [elem[0] for elem in clf_probs])
-        #res1 = np.append(res1, [elem[0] for elem in clf_probs[clf_probs.shape[0]/2:]])
 
+    score = score * percentage
 
-    return res0, res1
+    return res0, score
 
 
     #return np.c_[_features[:, 0], _features[:, 1], y_pred]
@@ -105,9 +105,11 @@ if __name__ == '__main__':
 
     pred = np.empty(0)[:, np.newaxis]
 
-    drivers = list_all_drivers(PATHTODRIVERDATA)
-    for driver_index, driver in enumerate(drivers):
-        print 'evaluating driver', driver, '(%d%%)' % (driver_index*100.0/len(drivers))
+    mean_score = 0.0;
+
+    num_drivers = 2738
+    for driver_index in range(num_drivers):
+        print 'evaluating driver index', driver_index, '(%d%%)' % (driver_index*100.0/num_drivers)
 
         # test 4 times driver 1 vs driver 2, 3, 4
         begin = driver_index*200
@@ -117,9 +119,14 @@ if __name__ == '__main__':
         features_true = features[begin:end, :]
         features_false = features[end:end_false, :]
 
-        res0, res1 = cross_validate(features_true, features_false, 0.2)
+        res0, score = cross_validate(features_true, features_false, 0.2)
 
         pred = np.vstack((pred, res0[:, np.newaxis]))
+
+        mean_score += score
+
+    mean_score = mean_score / num_drivers
+    print mean_score
 
     # replace with drivers_list and trips_list
     res = np.c_[(feat1[:, 0], feat1[:, 1], pred)]
