@@ -6,6 +6,7 @@ Compiles list of features to files.
 
 from features import AccelerationFeature
 from features import AngleFeature
+from features import SpeedPercentileFeature
 import numpy as np
 from utils import get_trip_npy, list_all_drivers
 from utils import PATHTODRIVERDATA
@@ -54,11 +55,17 @@ def compile_features(features):
 
 if __name__ == '__main__':
     # select features for pre-compilation
-    features = [AccelerationFeature(10, 31, True, np.median),
-                AccelerationFeature(30, 51, True, np.median),
-                AccelerationFeature(30, 51, False, np.median),
-                AccelerationFeature(50, 71, True, np.median),
-                AccelerationFeature(50, 71, False, np.median),
-                AngleFeature(0, np.mean), ]
+    # features = [AccelerationFeature(10, 31, True, np.median),
+    #             AccelerationFeature(30, 51, True, np.median),
+    #             AccelerationFeature(30, 51, False, np.median),
+    #             AccelerationFeature(50, 71, True, np.median),
+    #             AccelerationFeature(50, 71, False, np.median),
+    #             AngleFeature(0, np.mean), ]
+
+    #features = [SpeedPercentileFeature(5),
+    #            SpeedPercentileFeature(95), ]
+
+    features = [AccelerationFeature(5),
+                AccelerationFeature(95),]
 
     compile_features(features)
