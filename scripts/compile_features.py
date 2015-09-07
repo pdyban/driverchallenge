@@ -83,8 +83,14 @@ if __name__ == '__main__':
     #features = [SpeedPercentileFeature(5),
     #            SpeedPercentileFeature(95), ]
 
-    features = [AccelerationPercentileFeature(5),
-                AccelerationPercentileFeature(95),
-                TripLengthFeature()]
+    #features = [AccelerationPercentileFeature(5),
+    #            AccelerationPercentileFeature(95),
+    #            TripLengthFeature()]
+
+    # compile new, non-interpolated acceleration features
+    features = [AccelerationFeature(10, 31, True, np.mean, False),
+                AccelerationFeature(30, 51, True, np.mean, False),
+                AccelerationFeature(50, 71, True, np.mean, False),
+                ]
 
     compile_features(features)
