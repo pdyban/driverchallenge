@@ -5,7 +5,7 @@ Compiles list of features to files.
 """
 
 from features import AccelerationFeature
-from features import AngleFeature
+from features import AngleFeature, AnglePercentileFeature
 from features import SpeedPercentileFeature
 from features import AccelerationPercentileFeature
 from features import TripLengthFeature
@@ -95,6 +95,5 @@ if __name__ == '__main__':
 
     # compile more percentile features
     features.extend([AccelerationPercentileFeature(p) for p in (1,10,25,50,75,90,99)])
-    features.extend([AngleFeature(0, np.percentile(p)) for p in (1,5,10,25,50,75,90,99)])
 
     compile_features(features)
