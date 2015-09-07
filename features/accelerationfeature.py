@@ -11,12 +11,13 @@ class AccelerationFeature(Speed, Feature):
     """
     Computes acceleration feature.
     """
-    def __init__(self, _from, _to, _acceleration, _feature):
+    def __init__(self, _from, _to, _acceleration, _feature, _interpolate=True):
         super(AccelerationFeature, self).__init__()
         self.to_ = _to
         self.from_ = _from
         self.acc = _acceleration
         self.feat = _feature  # e.g. np.median, np.std
+        self.interpolate = _interpolate
 
     def __repr__(self):
         return "%s %s feature for speed interval (%d, %d)" % (self.feat.__name__, ['decceleration', 'acceleration'][self.acc], self.from_, self.to_)
