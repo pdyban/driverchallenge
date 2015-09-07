@@ -178,9 +178,8 @@ def run_crossvalidation_create_submission(features, subdir):
 def list_feature_files():
     #return [os.path.join('../features_npy/', f) for f in ['feat%d.npy' % i for i in [0,1,2,16]]]
     #return [os.path.join('../features_npy_old/', f) for f in ['feat%d.npy' % i for i in [0, 1, 2, 16]]]
-    #return [os.path.join('../features_npy_old/', f) for f in os.listdir('../features_npy_old/') if not f.startswith('.')]
     return (os.path.join('../features_npy_old/', f) for f in os.listdir('../features_npy_old/')
-            if not f.startswith('.'))
+           if not f.startswith('.'))
 
 
 if __name__ == '__main__':
@@ -200,5 +199,4 @@ if __name__ == '__main__':
 
         features.append(feat1_ext[:, 2, np.newaxis])
 
-        print 'starting', feat_files
-        score = run_crossvalidation_create_submission(features, subdir)
+    score = run_crossvalidation_create_submission(features, subdir)
