@@ -40,12 +40,17 @@ def list_all_drivers(pathToDriverData):
 # the following functions write a submission to file
 
 from csv import writer
+import os
 
-def write_submission_to_file(filename, features):
+
+def write_submission_to_file(filename, features, zip=False):
     """
     Creates a csv-formatted file with the following syntax:
     driver, trip, value -> driver_trip, value ? True : False
     """
+    if not os.path.exists(os.path.dirname(filename)):
+        os.makedirs(os.path.dirname(filename))
+
     with open(filename, 'w') as f:
         w = writer(f)
         w.writerow(['driver_trip', 'prob'])
@@ -55,6 +60,14 @@ def write_submission_to_file(filename, features):
             w.writerow([index] + ['%d' % line[2]])
 
     print 'submission file written to', filename
+
+    if zip:
+        from zipfile import ZipFile, ZIP_DEFLATED
+        zip_filename = filename.replace('.csv', '.zip')
+
+        with ZipFile(zip_filename, 'w', compression=ZIP_DEFLATED) as zf:
+            zf.write(filename)
+            print 'zipped submission to', zip_filename
 
 
 # prepare plot
