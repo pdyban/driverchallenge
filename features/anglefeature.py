@@ -71,3 +71,14 @@ class AngleFeature(Feature):
             return math.acos(round(numerator/denominator, 5))/math.pi
 
         return -1
+
+
+class AnglePercentileFeature(Feature):
+
+    def __init__(self, *args):
+        super(AnglePercentileFeature, self).__init__()
+        #self.feat = compute_perc
+        raise NotImplementedError('Not implemented yet, I am too tired!')
+
+    def __repr__(self):
+        return '%d % angle percentile feature %s RDP' % (self.percentile, ['without', 'with'][self.rdpFactor_ > 0])
