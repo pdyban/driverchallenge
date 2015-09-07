@@ -17,15 +17,21 @@ import os
 
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from time import time
 from datetime import datetime
 from utils import write_submission_to_file
+from itertools import izip
+from csv import writer
 
 
 PARALLEL = True
 NUMDRIVERS = 2736
 SPREAD = 4
 THRESHOLD = 0.5
+SAVE_NPY = False  # should save prediction probabilities as numpy arrays
+DISPLAY_PLOT = False  # should pop up plot after each feature is completed
+SAVE_PLOT = True  # should save plot to png file
 
 
 def cross_validate(_features_true, _features_false, percentage):
@@ -61,7 +67,8 @@ def cross_validate(_features_true, _features_false, percentage):
         Y_train = np.append(np.ones(trainFeature0.shape[0]), np.zeros(trainFeature1.shape[0]))
         Y_test = np.ones(testFeature0.shape[0])
 
-        clf = RandomForestClassifier(n_estimators=5)
+        #clf = RandomForestClassifier(n_estimators=20)
+        clf = LogisticRegression(C=0.001)
         #from sklearn.ensemble import GradientBoostingClassifier
         #clf = GradientBoostingClassifier()
         clf.fit(X_train, Y_train)
@@ -92,14 +99,97 @@ def cvalidate_driver(X, _path):
 
     return res
 
+
+def compute_iteration(args):
+    features, driver_index = args
+
+    if driver_index % 100 == 0:
+        print 'evaluating driver index', driver_index
+
+    # test 4 times driver 1 vs driver 2, 3, 4
+    begin = driver_index*200
+    end = (driver_index+1)*200
+    end_false = (driver_index+SPREAD+1)*200
+
+    features_true = features[begin:end, :]
+    features_false = features[end:end_false, :]
+
+    res0, score = cross_validate(features_true, features_false, 0.2)
+
+    return res0, score
+
+
+def run_crossvalidation_create_submission(features, subdir):
+    features = np.hstack([f for f in features])
+
+    start = time()
+    if PARALLEL:
+        from multiprocessing import Pool
+        p = Pool()
+        pred_mthreaded = p.map(compute_iteration, izip([features]*NUMDRIVERS, range(NUMDRIVERS)))
+
+    else:
+        pred_mthreaded = []
+        for driver_index in range(NUMDRIVERS):
+            pred_mthreaded.append(compute_iteration(features, driver_index))
+
+    end = time()
+
+    mean_score = np.mean([score[1] for score in pred_mthreaded])
+    print 'model evaluation finished in', end-start, 'seconds with mean score =', mean_score
+
+    pred = np.vstack([pred[0][:, np.newaxis] for pred in pred_mthreaded])
+
+    filename = os.path.join('../submissions/',
+                          subdir,
+                          datetime.now().strftime('%Y%m%d__%H%M%S'))
+
+    res = np.c_[(drivers_list, trips_list, pred)]
+
+    if SAVE_NPY:
+        np.save(open('../tmp/res.npy', 'w'), res)
+
+    # apply threshold for submission
+    res_filtered = np.c_[(drivers_list, trips_list, np.array(np.where(pred > THRESHOLD, 1, 0)))]
+    write_submission_to_file('%s.csv' % filename, res_filtered, True)
+
+    if DISPLAY_PLOT or SAVE_PLOT:
+        import matplotlib.pyplot as plt
+
+        # the histogram of the data
+        n, bins, patches = plt.hist(res[:200, 2], normed=0, facecolor='green', alpha=0.75)
+        n, bins, patches = plt.hist(res[200:400, 2], normed=0, facecolor='red', alpha=0.75)
+        n, bins, patches = plt.hist(res[400:600, 2], normed=0, facecolor='yellow', alpha=0.75)
+        n, bins, patches = plt.hist(res[600:800, 2], normed=0, facecolor='blue', alpha=0.75)
+        if DISPLAY_PLOT:
+            plt.show()
+
+        if SAVE_PLOT:
+            plt.savefig(os.path.join('%s.png' % filename))
+
+    # store estimated scores in a csv
+    with open(os.path.join(os.path.dirname(filename), 'scores.csv'), 'a') as scores_files:
+        r = writer(scores_files, delimiter=';')
+        r.writerow([filename, mean_score])
+
+    return mean_score
+
+
 def list_feature_files():
     #return [os.path.join('../features_npy/', f) for f in ['feat%d.npy' % i for i in [0,1,2,16]]]
-    return [os.path.join('../features_npy_old/', f) for f in ['feat%d.npy' % i for i in [18]]]
-    #return [os.path.join('../features_npy/', f) for f in os.listdir('../features_npy/')]
+    #return [os.path.join('../features_npy_old/', f) for f in ['feat%d.npy' % i for i in [0, 1, 2, 16]]]
+    #return [os.path.join('../features_npy_old/', f) for f in os.listdir('../features_npy_old/') if not f.startswith('.')]
+    return (os.path.join('../features_npy_old/', f) for f in os.listdir('../features_npy_old/')
+            if not f.startswith('.'))
+
 
 if __name__ == '__main__':
     features = []
-    for feat_files in list_feature_files():
+    feature_files = list_feature_files()
+
+    subdir = datetime.now().strftime('%Y%m%d__%H%M%S')
+
+    for feat_files in feature_files:
 
         feat1 = np.load(feat_files)
         drivers_list = feat1[:, 0]
@@ -110,56 +200,5 @@ if __name__ == '__main__':
 
         features.append(feat1_ext[:, 2, np.newaxis])
 
-    features = np.hstack([f for f in features])
-
-    def compute_iteration(driver_index):
-        if driver_index % 100 == 0:
-            print 'evaluating driver index', driver_index
-
-        # test 4 times driver 1 vs driver 2, 3, 4
-        begin = driver_index*200
-        end = (driver_index+1)*200
-        end_false = (driver_index+SPREAD+1)*200
-
-        features_true = features[begin:end, :]
-        features_false = features[end:end_false, :]
-
-        res0, score = cross_validate(features_true, features_false, 0.2)
-
-        return res0, score
-
-    start = time()
-    if PARALLEL:
-        from multiprocessing import Pool
-        p = Pool()
-        pred_mthreaded = p.map(compute_iteration, range(NUMDRIVERS))
-
-    else:
-        pred_mthreaded = []
-        for driver_index in range(NUMDRIVERS):
-            pred_mthreaded.append(compute_iteration(driver_index))
-
-    end = time()
-
-    print 'model evaluation finished in', end-start, 'seconds with mean score =', np.mean([score[1] for score in pred_mthreaded])
-
-    pred = np.vstack([pred[0][:, np.newaxis] for pred in pred_mthreaded])
-
-    res = np.c_[(drivers_list, trips_list, pred)]
-
-    np.save(open('../tmp/res.npy', 'w'), res)
-
-    import matplotlib.pyplot as plt
-
-    # the histogram of the data
-    n, bins, patches = plt.hist(res[:200, 2], normed=0, facecolor='green', alpha=0.75)
-    n, bins, patches = plt.hist(res[200:400, 2], normed=0, facecolor='red', alpha=0.75)
-    n, bins, patches = plt.hist(res[400:600, 2], normed=0, facecolor='yellow', alpha=0.75)
-    n, bins, patches = plt.hist(res[600:800, 2], normed=0, facecolor='blue', alpha=0.75)
-    plt.show()
-
-    # apply threshold for submission
-    res = np.c_[(drivers_list, trips_list, np.array(np.where(pred > THRESHOLD, 1, 0)))]
-
-    subdir = os.path.join('../submissions/', datetime.now().strftime('%Y%m%d__%H%M%S'))
-    write_submission_to_file('%s.csv' % subdir, res)
+        print 'starting', feat_files
+        score = run_crossvalidation_create_submission(features, subdir)
