@@ -67,10 +67,10 @@ def cross_validate(_features_true, _features_false, percentage):
         Y_train = np.append(np.ones(trainFeature0.shape[0]), np.zeros(trainFeature1.shape[0]))
         Y_test = np.ones(testFeature0.shape[0])
 
-        clf = RandomForestClassifier(n_estimators=80)
+        #clf = RandomForestClassifier(n_estimators=80)
         #clf = LogisticRegression(C=0.001)
-        #from sklearn.ensemble import GradientBoostingClassifier
-        #clf = GradientBoostingClassifier()
+        from sklearn.ensemble import GradientBoostingClassifier
+        clf = GradientBoostingClassifier()
         clf.fit(X_train, Y_train)
 
         #score = score + clf.score(X_test, Y_test)
