@@ -63,8 +63,8 @@ class AngleFeature(Feature):
             p12 = self.distance(p1, p2)
             p13 = self.distance(p1, p3)
             p23 = self.distance(p2, p3)
-            numerator = p12**2 + p23**2 - p13**2
-            denominator = 2 * p12 * p23
+            numerator = p12 + p23 - p13
+            denominator = 2 * math.sqrt(p12 * p23)
             if denominator == 0:
                 return -1
 
@@ -75,10 +75,49 @@ class AngleFeature(Feature):
 
 class AnglePercentileFeature(Feature):
 
-    def __init__(self, *args):
+    def __init__(self, _percentile):
         super(AnglePercentileFeature, self).__init__()
-        #self.feat = compute_perc
-        raise NotImplementedError('Not implemented yet, I am too tired!')
+        self.percentile = _percentile
+        self.feat = np.mean
+        #self.feat = lambda x: np.percentile(x, _percentile)
 
     def __repr__(self):
-        return '%d % angle percentile feature %s RDP' % (self.percentile, ['without', 'with'][self.rdpFactor_ > 0])
+        return '%d %% angle percentile feature' % self.percentile
+
+    def compute(self, trip):
+
+        angle_feature_elements = []
+
+        for index, p in list(enumerate(trip)):
+            current_angle = self.get_angle(index, trip)
+
+            if current_angle == -1:
+                continue
+
+            angle_feature_elements.append(current_angle)
+
+        if len(angle_feature_elements) > 0:
+            return self.feat(angle_feature_elements)
+
+        else:
+            return AngleFeature.INVALIDDATAREPLACEMENT
+
+    def distance(self, p1, p2):
+        return (p1[0]-p2[0])**2 + (p1[1]-p2[1])**2
+
+    def get_angle(self, p, trip):
+        if 0 < p < len(trip)-1:
+            p1 = trip[p-1]
+            p2 = trip[p]
+            p3 = trip[p+1]
+            p12 = self.distance(p1, p2)
+            p13 = self.distance(p1, p3)
+            p23 = self.distance(p2, p3)
+            numerator = p12 + p23 - p13
+            denominator = 2 * math.sqrt(p12 * p23)
+            if denominator == 0:
+                return -1
+
+            return math.acos(round(numerator/denominator, 5))/math.pi
+
+        return -1
