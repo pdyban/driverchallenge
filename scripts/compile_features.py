@@ -88,12 +88,16 @@ if __name__ == '__main__':
     #            TripLengthFeature()]
 
     # compile new, non-interpolated acceleration features
-    features = [AccelerationFeature(10, 31, True, np.mean, False),
-                AccelerationFeature(30, 51, True, np.mean, False),
-                AccelerationFeature(50, 71, True, np.mean, False),
-                ]
+    # features = [AccelerationFeature(10, 31, True, np.mean, False),
+    #             AccelerationFeature(30, 51, True, np.mean, False),
+    #             AccelerationFeature(50, 71, True, np.mean, False),
+    #             ]
+    #
+    # # compile more percentile features
+    # features.extend([AccelerationPercentileFeature(p) for p in (1,10,25,50,75,90,99)])
 
-    # compile more percentile features
-    features.extend([AccelerationPercentileFeature(p) for p in (1,10,25,50,75,90,99)])
+    features = [AnglePercentileFeature(p) for p in (1,5,10,25,50,75,90,95,99)]
+    features.extend([SpeedPercentileFeature(p) for p in (1,10,25,50,75,90,99)])
 
     compile_features(features)
+
